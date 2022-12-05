@@ -1,0 +1,27 @@
+{
+  "name": "autobase-event-bus",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "tape tests/**/*.js"
+  },
+  "keywords": [],
+  "author": "Sean Zellmer <sean@lejeunerenard.com> (http://lejeunerenard.com/)",
+  "license": "MIT",
+  "devDependencies": {
+    "corestore": "^6.2.0",
+    "eslint": "^8.27.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-n": "^15.5.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "random-access-memory": "^6.0.0",
+    "tape": "^5.6.1"
+  },
+  "dependencies": {
+    "autobase": "github:hypercore-protocol/autobase",
+    "hyperbee": "^2.1.2"
+  }
+}

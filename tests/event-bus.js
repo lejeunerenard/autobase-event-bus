@@ -36,8 +36,10 @@ test('EventBus', (t) => {
     const corestore = new Corestore(RAM)
     const errorEmitBus = new EventBus(corestore, { localInput: null })
 
-    await asyncThrows(async () => await errorEmitBus.emit('beep', 'foo', 2, 'baz'),
-      /No localInput hypercore provided/, t, 'throws when no localInput is defined')
+    await asyncThrows(async () =>
+      await errorEmitBus.emit('beep', 'foo', 2, 'baz'),
+    /No localInput hypercore provided/, t,
+    'throws when no localInput is defined')
 
     // Normal use
     const bus = new EventBus(corestore, {
@@ -61,7 +63,8 @@ test('EventBus', (t) => {
     const corestore = new Corestore(RAM)
 
     const errorEmitBus = new EventBus(corestore)
-    t.throws(() => errorEmitBus.on(), /event must be a string/, 'throws when no event is given')
+    t.throws(() => errorEmitBus.on(), /event must be a string/,
+      'throws when no event is given')
 
     // Normal use
     const mine = corestore.get({ name: 'onLocalInput' })

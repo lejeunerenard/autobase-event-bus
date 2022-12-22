@@ -11,6 +11,8 @@ export class EventBus {
     // TODO Decide if i want to default valueEncoding to json or something else
     this.valueEncoding = opts.valueEncoding ? codecs(opts.valueEncoding) : null
 
+    this.eventStreamRetryTimeout = opts.eventStreamRetryTimeout || 100
+
     // TODO decide whether eager update needs to be explicitly set to false by default
     this.autobase = new Autobase({
       ...opts,
@@ -34,9 +36,11 @@ export class EventBus {
   }
 
   setupEventStream () {
-    this.eventStream = this.autobase.view.createHistoryStream({ live: true, gte: -1 })
+    const startSeq = this.lastEventSeq || -1
+    this.eventStream = this.autobase.view.createHistoryStream({ live: true, gte: startSeq })
       .on('data', (node) => {
-        const { key, value } = node
+        const { key, value, seq } = node
+        this.lastEventSeq = seq + 1
         const prefix = key.substring(0, 6)
         if (prefix === 'event!') {
           const eventObj = value
@@ -52,7 +56,7 @@ export class EventBus {
         // but instead has a retry X times setup which quickly gets exhausted
         // when explicitly requesting a block out of bounds.
         if (err.message === 'Linearization could not be rebuilt after 32 attempts') {
-          this.eventStreamRetry = setTimeout(this.setupEventStream.bind(this), 5 * 1000)
+          this.eventStreamRetry = setTimeout(this.setupEventStream.bind(this), this.eventStreamRetryTimeout)
         }
       })
   }

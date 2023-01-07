@@ -36,7 +36,7 @@ export class EventBus {
   }
 
   setupEventStream () {
-    const startSeq = this.lastEventSeq || -1
+    const startSeq = this.lastEventSeq || 0
     this.eventStream = this.autobase.view.createHistoryStream({ live: true, gte: startSeq })
       .on('data', (node) => {
         const { key, value, seq } = node

@@ -112,8 +112,6 @@ test('EventBus', (t) => {
         localOutput: mineOut
       })
 
-      // TODO: Seems to hang on the event stream...
-
       const tasks = [
         new Promise((resolve, reject) => {
           bus.on('beep', () => {

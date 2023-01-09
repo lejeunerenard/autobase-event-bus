@@ -72,12 +72,14 @@ export class EventBus {
       const { event, timestamp } = eventObj
       const timestampMS = (new Date(timestamp)).getTime()
 
-      await Promise.all([
-        // By Time
-        b.put(['time', timestampMS, event, node.id, node.seq].join('!'), eventObj),
-        // By event
-        b.put(['event', event, timestampMS, node.id, node.seq].join('!'), eventObj)
-      ])
+      // By event
+      const eventKey = ['event', event, timestampMS, node.id, node.seq]
+        .join('!')
+      // By Time
+      const timeKey = ['time', timestampMS, event, node.id, node.seq]
+        .join('!')
+
+      await Promise.all([eventKey, timeKey].map((key) => b.put(key, eventObj)))
     }
 
     await b.flush()

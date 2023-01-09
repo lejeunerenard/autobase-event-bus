@@ -6,7 +6,7 @@ import Hyperbee from 'hyperbee'
 import assert from 'assert'
 
 export class EventBus {
-  constructor (corestore, opts = {}) {
+  constructor (opts = {}) {
     this.keyEncoding = opts.keyEncoding ? codecs(opts.keyEncoding) : null
     // TODO Decide if i want to default valueEncoding to json or something else
     this.valueEncoding = opts.valueEncoding ? codecs(opts.valueEncoding) : null

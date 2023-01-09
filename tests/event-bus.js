@@ -36,7 +36,7 @@ test('EventBus', (t) => {
 
   t.test('emit', async (t) => {
     const corestore = new Corestore(RAM)
-    const errorEmitBus = new EventBus(corestore, { localInput: null })
+    const errorEmitBus = new EventBus({ localInput: null })
 
     await asyncThrows(async () =>
       await errorEmitBus.emit('beep', 'foo', 2, 'baz'),
@@ -44,7 +44,7 @@ test('EventBus', (t) => {
     'throws when no localInput is defined')
 
     // Normal use
-    const bus = new EventBus(corestore, {
+    const bus = new EventBus({
       valueEncoding: 'json',
       localInput: corestore.get({ name: 'emitLocalInput' })
     })
@@ -65,13 +65,13 @@ test('EventBus', (t) => {
 
       const corestore = new Corestore(RAM)
 
-      const errorEmitBus = new EventBus(corestore)
+      const errorEmitBus = new EventBus()
       t.throws(() => errorEmitBus.on(), /event must be a string/,
         'throws when no event is given')
 
       // Normal use
       const mine = corestore.get({ name: 'onLocalInput' })
-      const bus = new EventBus(corestore, {
+      const bus = new EventBus({
         eagerUpdate: false,
         keyEncoding: 'utf-8',
         valueEncoding: 'json',
@@ -103,7 +103,7 @@ test('EventBus', (t) => {
       // Normal use
       const mine = corestore.get({ name: 'onLocalInput' })
       const mineOut = corestore.get({ name: 'onLocalOut' })
-      const bus = new EventBus(corestore, {
+      const bus = new EventBus({
         eagerUpdate: true,
         keyEncoding: 'utf-8',
         valueEncoding: 'json',
@@ -148,7 +148,7 @@ test('EventBus', (t) => {
       // Bus 1
       const input1 = corestore.get({ name: 'input1' })
       const out1 = corestore.get({ name: 'out1' })
-      const bus1 = new EventBus(corestore, {
+      const bus1 = new EventBus({
         eagerUpdate: false,
         keyEncoding: 'utf-8',
         valueEncoding: 'json',
@@ -160,7 +160,7 @@ test('EventBus', (t) => {
       // Bus 2
       const core2 = corestore.get({ name: 'input2' })
       const out2 = corestore.get({ name: 'out2' })
-      const bus2 = new EventBus(corestore, {
+      const bus2 = new EventBus({
         eagerUpdate: false,
         keyEncoding: 'utf-8',
         valueEncoding: 'json',
@@ -233,7 +233,7 @@ test('EventBus', (t) => {
 
     // Normal use
     const mine = corestore.get({ name: 'onLocalInput' })
-    const bus = new EventBus(corestore, {
+    const bus = new EventBus({
       eagerUpdate: false,
       keyEncoding: 'utf-8',
       valueEncoding: 'json',

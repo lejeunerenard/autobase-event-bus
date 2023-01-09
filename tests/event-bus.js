@@ -227,7 +227,7 @@ test('EventBus', (t) => {
   })
 
   t.test('supports other indexes', async (t) => {
-    // t.plan(2)
+    t.plan(6)
 
     const corestore = new Corestore(RAM)
 
@@ -316,8 +316,6 @@ test('EventBus', (t) => {
     t.match(foundTimes[1], /time!\d+!foo/, 'found original foo time')
 
     await bus.close()
-
-    t.end()
   })
 
   t.end()

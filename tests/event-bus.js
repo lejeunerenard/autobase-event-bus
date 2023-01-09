@@ -139,6 +139,91 @@ test('EventBus', (t) => {
 
       return Promise.all(tasks).then(bus.close.bind(bus))
     })
+
+    t.test('doesnt refire when linearized core resequences', async (t) => {
+      t.plan(2)
+
+      const corestore = new Corestore(RAM)
+
+      // Bus 1
+      const input1 = corestore.get({ name: 'input1' })
+      const out1 = corestore.get({ name: 'out1' })
+      const bus1 = new EventBus(corestore, {
+        eagerUpdate: false,
+        keyEncoding: 'utf-8',
+        valueEncoding: 'json',
+        inputs: [input1],
+        localInput: input1,
+        localOutput: out1
+      })
+
+      // Bus 2
+      const core2 = corestore.get({ name: 'input2' })
+      const out2 = corestore.get({ name: 'out2' })
+      const bus2 = new EventBus(corestore, {
+        eagerUpdate: false,
+        keyEncoding: 'utf-8',
+        valueEncoding: 'json',
+        inputs: [core2],
+        localInput: core2,
+        localOutput: out2
+      })
+
+      let timesBus1EventWasCalled = 0
+
+      const tasks = [
+        new Promise((resolve, reject) => {
+          bus1.on('bus1Event', ({ data }) => {
+            timesBus1EventWasCalled++
+            if (timesBus1EventWasCalled === 1) {
+              t.pass('bus1Event callback on bus1 was fired')
+            } else {
+              console.log('timesBus1EventWasCalled', timesBus1EventWasCalled)
+              t.fail('bus1Event callback on bus1 was called more than once')
+            }
+            resolve()
+          })
+        }),
+        bus1.emit('bus1Event', 'a'),
+        bus1.emit('filler'),
+        new Promise((resolve, reject) => {
+          bus2.on('bus2Event', () => {
+            t.pass('bus2Event callback on bus2 was fired')
+            resolve()
+          })
+        }),
+        bus2.emit('bus2Event'),
+        bus2.emit('filler'),
+        bus2.emit('filler'),
+        bus2.emit('filler')
+      ]
+      await Promise.all(tasks)
+
+      // Ensure updated
+      await bus1.autobase.view.update()
+      await bus2.autobase.view.update()
+
+      // Add bus2 input to bus1 to emulate delayed sync
+      await bus1.autobase.addInput(core2)
+      await bus1.autobase.view.update()
+
+      // // TODO Figure out how to properly test the bugged scenario where this
+      // // wasn't tripping the fail case for calling the event handler too many
+      // // times.
+      // await bus2.emit('bus1Event', 'b')
+      // await bus1.autobase.view.update()
+      // await bus2.autobase.view.update()
+
+      const closePromise = new Promise((resolve, reject) => {
+        setTimeout(async () => {
+          await bus1.close()
+          await bus2.close()
+          resolve()
+        }, 200)
+      })
+
+      await closePromise
+    })
   })
 
   t.test('supports other indexes', async (t) => {
@@ -230,7 +315,7 @@ test('EventBus', (t) => {
     t.match(foundTimes[0], /time!\d+!beep/, 'found original beep time')
     t.match(foundTimes[1], /time!\d+!foo/, 'found original foo time')
 
-    bus.close()
+    await bus.close()
 
     t.end()
   })

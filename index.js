@@ -32,19 +32,19 @@ export class EventBus {
     // Setup emitting on event emitter via hyperbee
     this.eventStream = null
     this.eventStreamRetry = null
+    this.eventSeen = {}
     this.autobase.once('append', this.setupEventStream.bind(this))
   }
 
   setupEventStream () {
-    const startSeq = this.lastEventSeq || 0
-    this.eventStream = this.autobase.view.createHistoryStream({ live: true, gte: startSeq })
+    this.eventStream = this.autobase.view.createHistoryStream({ live: true })
       .on('data', (node) => {
-        const { key, value, seq } = node
-        this.lastEventSeq = seq + 1
+        const { key, value } = node
         const prefix = key.substring(0, 6)
-        if (prefix === 'event!') {
+        if (prefix === 'event!' && !(key in this.eventSeen)) {
           const eventObj = value
           const eventDetails = { data: eventObj.data, timestamp: eventObj.timestamp }
+          this.eventSeen[key] = true
           this.bus.emit(eventObj.event, eventDetails)
         }
       })

@@ -34,6 +34,23 @@ test('EventBus', (t) => {
     t.end()
   })
 
+  t.test('close', async (t) => {
+    const bus = new EventBus()
+
+    // Public properties
+    t.ok(bus.autobase, 'has autobase property')
+
+    try {
+      await bus.close()
+      t.pass('doesnt throw w/ normal use')
+    } catch (e) {
+      t.fail('doesnt throw w/ normal use')
+      console.error(e)
+    }
+
+    t.end()
+  })
+
   t.test('emit', async (t) => {
     const corestore = new Corestore(RAM)
     const errorEmitBus = new EventBus({ localInput: null })

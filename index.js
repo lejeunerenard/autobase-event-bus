@@ -110,7 +110,9 @@ export class EventBus {
 
   async close () {
     clearTimeout(this.eventStreamRetry)
-    this.eventStream.destroy()
+    if (this.eventStream) {
+      this.eventStream.destroy()
+    }
     await this.autobase.close()
   }
 }

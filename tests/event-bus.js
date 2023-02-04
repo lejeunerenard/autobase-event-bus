@@ -52,28 +52,61 @@ test('EventBus', (t) => {
   })
 
   t.test('emit', async (t) => {
-    const corestore = new Corestore(RAM)
-    const errorEmitBus = new EventBus({ localInput: null })
+    t.test('basic usage', async (t) => {
+      const corestore = new Corestore(RAM)
+      const errorEmitBus = new EventBus({ localInput: null })
 
-    await asyncThrows(async () =>
-      await errorEmitBus.emit('beep', 'foo', 2, 'baz'),
-    /No localInput hypercore provided/, t,
-    'throws when no localInput is defined')
+      await asyncThrows(async () =>
+        await errorEmitBus.emit('beep', 'foo', 2, 'baz'),
+      /No localInput hypercore provided/, t,
+      'throws when no localInput is defined')
 
-    // Normal use
-    const bus = new EventBus({
-      valueEncoding: 'json',
-      localInput: corestore.get({ name: 'emitLocalInput' })
+      // Normal use
+      const bus = new EventBus({
+        valueEncoding: 'json',
+        localInput: corestore.get({ name: 'emitLocalInput' })
+      })
+      try {
+        await bus.emit('beep', 'foo', 2, 'baz')
+        t.pass('doesnt throw w/ normal use')
+      } catch (e) {
+        t.fail('doesnt throw w/ normal use')
+        console.error(e)
+      }
+
+      t.end()
     })
-    try {
-      await bus.emit('beep', 'foo', 2, 'baz')
-      t.pass('doesnt throw w/ normal use')
-    } catch (e) {
-      t.fail('doesnt throw w/ normal use')
-      console.error(e)
-    }
+    t.test('object arguments', async (t) => {
+      const corestore = new Corestore(RAM)
 
-    t.end()
+      const bus = new EventBus({
+        valueEncoding: 'json',
+        localInput: corestore.get({ name: 'emitLocalInput' })
+      })
+
+      await asyncThrows(async () =>
+        await bus.emit({}),
+      /event must be a string/, t,
+      'throws when no event property isnt a string')
+
+      await asyncThrows(async () =>
+        await bus.emit({ event: 'beep', timestamp: '2001-01-07' }),
+      /timestamp must be a Date/, t,
+      'throws when timestamp property isnt a Date obj')
+
+      // Normal use
+      try {
+        await bus.emit({
+          event: 'foo',
+          data: ['bar'],
+          timestamp: new Date('2020-07-08')
+        })
+        t.pass('doesnt throw w/ correct object argument use')
+      } catch (e) {
+        t.fail('doesnt throw w/ correct object argument use')
+        console.error(e)
+      }
+    })
   })
 
   t.test('on', async (t) => {

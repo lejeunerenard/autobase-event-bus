@@ -102,17 +102,23 @@ export class EventBus {
   }
 
   async emit (event, ...args) {
-    assert(typeof event === 'string', 'event must be a string')
+    let eventObj
+    if (typeof event === 'object' && 'event' in event) {
+      eventObj = event
+    } else {
+      eventObj = {
+        event,
+        data: args,
+        timestamp: new Date()
+      }
+    }
+    assert(typeof eventObj.event === 'string', 'event must be a string')
+    assert(eventObj.timestamp instanceof Date, 'timestamp must be a Date')
     assert(this.autobase.localInput, 'No localInput hypercore provided')
 
+    const data = enc(this.valueEncoding, eventObj)
+
     await this.autobase.localInput.ready()
-
-    const data = enc(this.valueEncoding, {
-      event,
-      data: args,
-      timestamp: new Date()
-    })
-
     return this.autobase.append(data)
   }
 

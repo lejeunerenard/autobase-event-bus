@@ -7,6 +7,8 @@ import assert from 'assert'
 
 export class EventBus {
   constructor (opts = {}) {
+    this._hyperbeeOpts = opts
+
     this.keyEncoding = opts.keyEncoding ? codecs(opts.keyEncoding) : null
     // TODO Decide if i want to default valueEncoding to json or something else
     this.valueEncoding = opts.valueEncoding ? codecs(opts.valueEncoding) : null
@@ -18,14 +20,9 @@ export class EventBus {
       ...opts,
       autostart: false
     })
-    this.autobase.start({
-      unwrap: true,
-      apply: this.eventIndexesApply.bind(this),
-      view: (core) => new Hyperbee(core.unwrap(), {
-        ...opts,
-        extension: false
-      })
-    })
+    if (opts.autostart) {
+      this.start()
+    }
 
     this.bus = new EventEmitter()
 
@@ -63,6 +60,17 @@ export class EventBus {
 
   ready () {
     return this.autobase.ready()
+  }
+
+  start () {
+    this.autobase.start({
+      unwrap: true,
+      apply: this.eventIndexesApply.bind(this),
+      view: (core) => new Hyperbee(core.unwrap(), {
+        ...this._hyperbeeOpts,
+        extension: false
+      })
+    })
   }
 
   async eventIndexesApply (bee, batch) {

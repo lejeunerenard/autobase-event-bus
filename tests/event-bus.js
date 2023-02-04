@@ -89,6 +89,7 @@ test('EventBus', (t) => {
       // Normal use
       const mine = corestore.get({ name: 'onLocalInput' })
       const bus = new EventBus({
+        autostart: true,
         eagerUpdate: false,
         keyEncoding: 'utf-8',
         valueEncoding: 'json',
@@ -121,6 +122,7 @@ test('EventBus', (t) => {
       const mine = corestore.get({ name: 'onLocalInput' })
       const mineOut = corestore.get({ name: 'onLocalOut' })
       const bus = new EventBus({
+        autostart: true,
         eagerUpdate: true,
         keyEncoding: 'utf-8',
         valueEncoding: 'json',
@@ -166,6 +168,7 @@ test('EventBus', (t) => {
       const input1 = corestore.get({ name: 'input1' })
       const out1 = corestore.get({ name: 'out1' })
       const bus1 = new EventBus({
+        autostart: true,
         eagerUpdate: false,
         keyEncoding: 'utf-8',
         valueEncoding: 'json',
@@ -178,6 +181,7 @@ test('EventBus', (t) => {
       const core2 = corestore.get({ name: 'input2' })
       const out2 = corestore.get({ name: 'out2' })
       const bus2 = new EventBus({
+        autostart: true,
         eagerUpdate: false,
         keyEncoding: 'utf-8',
         valueEncoding: 'json',
@@ -251,6 +255,7 @@ test('EventBus', (t) => {
     // Normal use
     const mine = corestore.get({ name: 'onLocalInput' })
     const bus = new EventBus({
+      autostart: true,
       eagerUpdate: false,
       keyEncoding: 'utf-8',
       valueEncoding: 'json',

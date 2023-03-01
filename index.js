@@ -27,35 +27,58 @@ export class EventBus {
     this.bus = new EventEmitter()
 
     // Setup emitting on event emitter via hyperbee
-    this.eventStream = null
-    this.eventStreamRetry = null
     this.eventSeen = new Set()
-    this.autobase.once('append', this.setupEventStream.bind(this))
   }
 
-  setupEventStream () {
-    this.eventStream = this.autobase.view.createHistoryStream({ live: true })
-      .on('data', (node) => {
-        const { key, value } = node
-        const prefix = key.substring(0, 6)
-        if (prefix === 'event!' && !this.eventSeen.has(key)) {
-          const eventObj = value
-          const eventDetails = { data: eventObj.data, timestamp: eventObj.timestamp }
-          this.eventSeen.add(key)
-          this.bus.emit(eventObj.event, eventDetails)
+  async setupEventStream () {
+    // TODO determine if this is necessary
+    await this.autobase.view.ready()
+
+    const searchOptions = { gte: 'event!', lt: 'event"' }
+    const db = this.autobase.view.snapshot()
+
+    // TODO Using snapshot only supported with fix to linearize.js's session on snapshotted cores on linearizedcoresession class
+    const stream = db.createDiffStream(this._lastCheckout || 0, searchOptions)
+    for await (const node of stream) {
+      let key
+      let value
+      // Diff stream
+      if ('left' in node || 'right' in node) {
+        if (node.left) {
+          key = node.left.key
+          value = node.left.value
+        } else {
+          key = node.right.key
+          value = node.right.value
         }
+      } else {
+        // TODO decide if this is needed ever
+        // createReadStream support
+        key = node.key
+        value = node.value
+      }
+      if (!this.eventSeen.has(key)) {
+        const eventObj = value
+        const eventDetails = { data: eventObj.data, timestamp: eventObj.timestamp }
+        this.eventSeen.add(key)
+        this.bus.emit(eventObj.event, eventDetails)
+      }
+    }
+
+    this._lastCheckout = db.version // Update latest
+
+    if (this.autobase.view.version !== db.version) {
+      process.nextTick(this.setupEventStream.bind(this))
+    } else {
+      // Setup hook to start again
+      this.autobase.view.feed.once('append', () => {
+        this.setupEventStream()
       })
-      .on('error', (err) => {
-        // Compensate for a non-await .get on LinearizedCore
-        // When the history stream reaches the end, hyperbee just request the
-        // next block assuming that the .get() will resolve when its available.
-        // The LinearizedCore implementation of Hypercore doesn't support this
-        // but instead has a retry X times setup which quickly gets exhausted
-        // when explicitly requesting a block out of bounds.
-        if (err.message === 'Linearization could not be rebuilt after 32 attempts') {
-          this.eventStreamRetry = setTimeout(this.setupEventStream.bind(this), this.eventStreamRetryTimeout)
-        }
+      // TODO Figure out if this works to solve truncation of output feed
+      this.autobase.view.feed.once('truncate', (ancestor) => {
+        this._lastCheckout = ancestor
       })
+    }
   }
 
   ready () {
@@ -70,6 +93,9 @@ export class EventBus {
         ...this._hyperbeeOpts,
         extension: false
       })
+    })
+    this.autobase.once('append', () => {
+      this.autobase.view.feed.once('append', this.setupEventStream.bind(this))
     })
   }
 
@@ -123,10 +149,6 @@ export class EventBus {
   }
 
   async close () {
-    clearTimeout(this.eventStreamRetry)
-    if (this.eventStream) {
-      this.eventStream.destroy()
-    }
     await this.autobase.close()
   }
 }

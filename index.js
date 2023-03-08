@@ -101,6 +101,8 @@ export class EventBus {
 
   async eventIndexesApply (bee, batch) {
     const b = bee.batch({ update: false })
+    const keys = [null, null]
+
     for (const node of batch) {
       const eventObj = this.valueEncoding.decode(node.value)
       const { event, timestamp } = eventObj
@@ -113,7 +115,10 @@ export class EventBus {
       const timeKey = ['time', timestampMS, event, node.id, node.seq]
         .join('!')
 
-      await Promise.all([eventKey, timeKey].map((key) => b.put(key, eventObj)))
+      keys[0] = eventKey
+      keys[1] = timeKey
+
+      await Promise.all(keys.map((key) => b.put(key, eventObj)))
     }
 
     await b.flush()

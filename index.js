@@ -5,6 +5,7 @@ import Autobase from 'autobase'
 import Hyperbee from 'hyperbee'
 import assert from 'assert'
 import lexint from 'lexicographic-integer'
+import { RangeWatcher } from './range-watcher.js'
 
 export class EventBus {
   constructor (opts = {}) {
@@ -13,6 +14,11 @@ export class EventBus {
     this.keyEncoding = opts.keyEncoding ? codecs(opts.keyEncoding) : null
     // TODO Decide if i want to default valueEncoding to json or something else
     this.valueEncoding = opts.valueEncoding ? codecs(opts.valueEncoding) : null
+
+    this._bus = new EventEmitter()
+    this._started = new Promise((resolve, reject) => {
+      this._bus.once('started', resolve)
+    })
 
     // TODO decide whether eager update needs to be explicitly set to false by default
     this.autobase = new Autobase({
@@ -23,65 +29,27 @@ export class EventBus {
       this.start()
     }
 
-    this._bus = new EventEmitter()
-
-    // Setup emitting on event emitter via hyperbee
-    this._lastEventEmittedPerLog = new Map()
+    this._watchers = new Map()
   }
 
-  async setupEventStream () {
-    const searchOptions = { gte: 'key!', lt: 'key"' }
-    const db = this.autobase.view.snapshot()
+  async setupEventStream (event = '*', otherVersion) {
+    if (this._watchers.has(event)) return this._watchers.get(event)
 
-    // TODO Using snapshot only supported with fix to linearize.js's session on snapshotted cores on linearizedcoresession class
-    const stream = db.createDiffStream(this._lastCheckout || this._initialViewVersion || 0, searchOptions)
-    for await (const node of stream) {
-      let key
-      let value
-      // Diff stream
-      if ('left' in node || 'right' in node) {
-        if (node.left) {
-          key = node.left.key
-          value = node.left.value
-        } else {
-          key = node.right.key
-          value = node.right.value
-        }
-      } else {
-        // TODO decide if this is needed ever
-        // createReadStream support
-        key = node.key
-        value = node.value
-      }
-      const [inputCoreKey, inputCoreSeqStr] = key.split('!').slice(-2)
-      const inputCoreSeq = parseInt(inputCoreSeqStr, 16)
-      const hasCoreKey = this._lastEventEmittedPerLog.has(inputCoreKey)
-      let prevSeq
-      let isNewer
-      if (hasCoreKey) {
-        prevSeq = this._lastEventEmittedPerLog.get(inputCoreKey)
-        isNewer = prevSeq < inputCoreSeq
-      }
-      if (!hasCoreKey || isNewer) {
-        const eventObj = value
-        const eventDetails = { data: eventObj.data, timestamp: eventObj.timestamp }
-        this._lastEventEmittedPerLog.set(inputCoreKey, inputCoreSeq)
-        this._bus.emit(eventObj.event, eventDetails)
-      }
+    await this._started
+
+    const searchOptions = event === '*'
+      ? { gte: 'key!', lt: 'key"' }
+      : { gte: `event!${event}!`, lt: `event!${event}"` }
+
+    // Default starting point
+    if (!otherVersion) {
+      otherVersion = this._initialViewVersion || 0
     }
 
-    this._lastCheckout = db.version // Update latest
+    const watcher = new RangeWatcher(this.autobase.view, searchOptions, otherVersion)
+    this._watchers.set(event, watcher)
 
-    if (this.autobase.view.version !== db.version) {
-      process.nextTick(this.setupEventStream.bind(this))
-    } else {
-      // Setup hook to start again
-      this.autobase.view.feed
-        .once('append', this.setupEventStream.bind(this))
-        .once('truncate', (ancestor) => {
-          this._lastCheckout = ancestor
-        })
-    }
+    return watcher
   }
 
   ready () {
@@ -97,14 +65,13 @@ export class EventBus {
         extension: false
       })
     })
-    this.autobase.once('append', () => {
-      this.autobase.view.feed.once('append', this.setupEventStream.bind(this))
-    })
     this.autobase.ready().then(() => {
       // TODO Try to get initial view size from remote outputs
       if (this.autobase.localOutput) {
         this._initialViewVersion = this.autobase.localOutput.length
       }
+
+      this._bus.emit('started')
     })
   }
 
@@ -142,7 +109,8 @@ export class EventBus {
     assert(typeof event === 'string', 'event must be a string')
     assert(typeof cb === 'function', 'second argument must be a callback function')
 
-    this._bus.on(event, cb)
+    this.setupEventStream(event).then((watcher) => watcher.on(event, cb))
+
     return this
   }
 

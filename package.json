@@ -21,7 +21,7 @@
     "tape": "^5.6.1"
   },
   "dependencies": {
-    "autobase": "github:hypercore-protocol/autobase",
+    "autobase": "github:holepunchto/autobase",
     "hyperbee": "^2.1.2",
     "lexicographic-integer": "^1.1.0"
   }

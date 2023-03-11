@@ -39,7 +39,7 @@ export class EventBus {
     const db = this.autobase.view.snapshot()
 
     // TODO Using snapshot only supported with fix to linearize.js's session on snapshotted cores on linearizedcoresession class
-    const stream = db.createDiffStream(this._lastCheckout || 0, searchOptions)
+    const stream = db.createDiffStream(this._lastCheckout || this._initialViewVersion || 0, searchOptions)
     for await (const node of stream) {
       let key
       let value
@@ -106,6 +106,12 @@ export class EventBus {
     })
     this.autobase.once('append', () => {
       this.autobase.view.feed.once('append', this.setupEventStream.bind(this))
+    })
+    this.autobase.ready().then(() => {
+      // TODO Try to get initial view size from remote outputs
+      if (this.autobase.localOutput) {
+        this._initialViewVersion = this.autobase.localOutput.length
+      }
     })
   }
 

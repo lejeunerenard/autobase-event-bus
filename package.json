@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "autobase": "github:hypercore-protocol/autobase",
-    "hyperbee": "^2.1.2"
+    "hyperbee": "^2.1.2",
+    "lexicographic-integer": "^1.1.0"
   }
 }

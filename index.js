@@ -4,6 +4,7 @@ import b4a from 'b4a'
 import Autobase from 'autobase'
 import Hyperbee from 'hyperbee'
 import assert from 'assert'
+import lexint from 'lexicographic-integer'
 
 export class EventBus {
   constructor (opts = {}) {
@@ -27,7 +28,7 @@ export class EventBus {
     this.bus = new EventEmitter()
 
     // Setup emitting on event emitter via hyperbee
-    this.eventSeen = new Set()
+    this.lastEventEmittedPerLog = new Map()
   }
 
   async setupEventStream () {
@@ -57,10 +58,19 @@ export class EventBus {
         key = node.key
         value = node.value
       }
-      if (!this.eventSeen.has(key)) {
+      const [inputCoreKey, inputCoreSeqStr] = key.split('!').slice(3)
+      const inputCoreSeq = parseInt(inputCoreSeqStr, 16)
+      const hasCoreKey = this.lastEventEmittedPerLog.has(inputCoreKey)
+      let prevSeq
+      let isNewer
+      if (hasCoreKey) {
+        prevSeq = this.lastEventEmittedPerLog.get(inputCoreKey)
+        isNewer = prevSeq < inputCoreSeq
+      }
+      if (!hasCoreKey || isNewer) {
         const eventObj = value
         const eventDetails = { data: eventObj.data, timestamp: eventObj.timestamp }
-        this.eventSeen.add(key)
+        this.lastEventEmittedPerLog.set(inputCoreKey, inputCoreSeq)
         this.bus.emit(eventObj.event, eventDetails)
       }
     }
@@ -108,11 +118,12 @@ export class EventBus {
       const { event, timestamp } = eventObj
       const timestampMS = (new Date(timestamp)).getTime()
 
+      const lexicographicSeq = lexint.pack(node.seq, 'hex')
       // By event
-      const eventKey = ['event', event, timestampMS, node.id, node.seq]
+      const eventKey = ['event', event, timestampMS, node.id, lexicographicSeq]
         .join('!')
       // By Time
-      const timeKey = ['time', timestampMS, event, node.id, node.seq]
+      const timeKey = ['time', timestampMS, event, node.id, lexicographicSeq]
         .join('!')
 
       keys[0] = eventKey

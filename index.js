@@ -14,8 +14,6 @@ export class EventBus {
     // TODO Decide if i want to default valueEncoding to json or something else
     this.valueEncoding = opts.valueEncoding ? codecs(opts.valueEncoding) : null
 
-    this.eventStreamRetryTimeout = opts.eventStreamRetryTimeout || 100
-
     // TODO decide whether eager update needs to be explicitly set to false by default
     this.autobase = new Autobase({
       ...opts,
@@ -25,16 +23,13 @@ export class EventBus {
       this.start()
     }
 
-    this.bus = new EventEmitter()
+    this._bus = new EventEmitter()
 
     // Setup emitting on event emitter via hyperbee
-    this.lastEventEmittedPerLog = new Map()
+    this._lastEventEmittedPerLog = new Map()
   }
 
   async setupEventStream () {
-    // TODO determine if this is necessary
-    await this.autobase.view.ready()
-
     const searchOptions = { gte: 'key!', lt: 'key"' }
     const db = this.autobase.view.snapshot()
 
@@ -60,18 +55,18 @@ export class EventBus {
       }
       const [inputCoreKey, inputCoreSeqStr] = key.split('!').slice(-2)
       const inputCoreSeq = parseInt(inputCoreSeqStr, 16)
-      const hasCoreKey = this.lastEventEmittedPerLog.has(inputCoreKey)
+      const hasCoreKey = this._lastEventEmittedPerLog.has(inputCoreKey)
       let prevSeq
       let isNewer
       if (hasCoreKey) {
-        prevSeq = this.lastEventEmittedPerLog.get(inputCoreKey)
+        prevSeq = this._lastEventEmittedPerLog.get(inputCoreKey)
         isNewer = prevSeq < inputCoreSeq
       }
       if (!hasCoreKey || isNewer) {
         const eventObj = value
         const eventDetails = { data: eventObj.data, timestamp: eventObj.timestamp }
-        this.lastEventEmittedPerLog.set(inputCoreKey, inputCoreSeq)
-        this.bus.emit(eventObj.event, eventDetails)
+        this._lastEventEmittedPerLog.set(inputCoreKey, inputCoreSeq)
+        this._bus.emit(eventObj.event, eventDetails)
       }
     }
 
@@ -81,13 +76,11 @@ export class EventBus {
       process.nextTick(this.setupEventStream.bind(this))
     } else {
       // Setup hook to start again
-      this.autobase.view.feed.once('append', () => {
-        this.setupEventStream()
-      })
-      // TODO Figure out if this works to solve truncation of output feed
-      this.autobase.view.feed.once('truncate', (ancestor) => {
-        this._lastCheckout = ancestor
-      })
+      this.autobase.view.feed
+        .once('append', this.setupEventStream.bind(this))
+        .once('truncate', (ancestor) => {
+          this._lastCheckout = ancestor
+        })
     }
   }
 
@@ -149,7 +142,7 @@ export class EventBus {
     assert(typeof event === 'string', 'event must be a string')
     assert(typeof cb === 'function', 'second argument must be a callback function')
 
-    this.bus.on(event, cb)
+    this._bus.on(event, cb)
     return this
   }
 

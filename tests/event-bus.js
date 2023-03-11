@@ -198,7 +198,7 @@ test('EventBus', (t) => {
     })
 
     t.test('doesnt refire when linearized core resequences', async (t) => {
-      t.plan(2)
+      t.plan(3)
 
       const corestore = new Corestore(RAM)
 
@@ -229,6 +229,7 @@ test('EventBus', (t) => {
       })
 
       let timesBus1EventWasCalled = 0
+      let timesAEventWasCalled = 0
 
       bus1.on('bus1Event', ({ data }) => {
         timesBus1EventWasCalled++
@@ -238,13 +239,22 @@ test('EventBus', (t) => {
           t.fail('bus1Event callback on bus1 was called more than once')
         }
       })
+      bus1.on('aardvarkEvent', ({ data }) => {
+        timesAEventWasCalled++
+        if (timesAEventWasCalled === 1) {
+          t.pass('aardvarkEvent callback on bus1 was fired')
+        } else {
+          t.fail('aardvarkEvent callback on bus1 was called more than once')
+        }
+      })
       bus2.on('bus2Event', () => {
         t.pass('bus2Event callback on bus2 was fired')
       })
 
       const tasks = [
-        bus1.emit('bus1Event', 'a'),
         bus1.emit('filler'),
+        bus1.emit('bus1Event', 'a'), // Must be after filler
+        bus1.emit('aardvarkEvent'), // Must be after bus1 so it comes before when hyperbee is queried via event name
         bus2.emit('bus2Event'),
         bus2.emit('filler'),
         bus2.emit('filler'),

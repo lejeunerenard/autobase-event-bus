@@ -35,7 +35,7 @@ export class EventBus {
     // TODO determine if this is necessary
     await this.autobase.view.ready()
 
-    const searchOptions = { gte: 'event!', lt: 'event"' }
+    const searchOptions = { gte: 'key!', lt: 'key"' }
     const db = this.autobase.view.snapshot()
 
     // TODO Using snapshot only supported with fix to linearize.js's session on snapshotted cores on linearizedcoresession class
@@ -58,7 +58,7 @@ export class EventBus {
         key = node.key
         value = node.value
       }
-      const [inputCoreKey, inputCoreSeqStr] = key.split('!').slice(3)
+      const [inputCoreKey, inputCoreSeqStr] = key.split('!').slice(-2)
       const inputCoreSeq = parseInt(inputCoreSeqStr, 16)
       const hasCoreKey = this.lastEventEmittedPerLog.has(inputCoreKey)
       let prevSeq
@@ -111,7 +111,7 @@ export class EventBus {
 
   async eventIndexesApply (bee, batch) {
     const b = bee.batch({ update: false })
-    const keys = [null, null]
+    const keys = [null, null, null]
 
     for (const node of batch) {
       const eventObj = this.valueEncoding.decode(node.value)
@@ -125,9 +125,13 @@ export class EventBus {
       // By Time
       const timeKey = ['time', timestampMS, event, node.id, lexicographicSeq]
         .join('!')
+      // By input key
+      const inputKey = ['key', node.id, lexicographicSeq]
+        .join('!')
 
       keys[0] = eventKey
       keys[1] = timeKey
+      keys[2] = inputKey
 
       await Promise.all(keys.map((key) => b.put(key, eventObj)))
     }

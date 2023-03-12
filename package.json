@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "tape tests/**/*.js"
+    "test": "npm run lint; tape tests/**/*.js",
+    "lint": "eslint **/*.js"
   },
   "keywords": [],
   "author": "Sean Zellmer <sean@lejeunerenard.com> (http://lejeunerenard.com/)",

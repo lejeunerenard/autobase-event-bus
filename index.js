@@ -20,7 +20,6 @@ export class EventBus {
       this._bus.once('started', resolve)
     })
 
-    // TODO decide whether eager update needs to be explicitly set to false by default
     this.autobase = new Autobase({
       ...opts,
       autostart: false
@@ -46,7 +45,8 @@ export class EventBus {
       otherVersion = this._initialViewVersion || 0
     }
 
-    const watcher = new RangeWatcher(this.autobase.view, searchOptions, otherVersion)
+    const watcher = new RangeWatcher(this.autobase.view, searchOptions,
+      otherVersion)
     this._watchers.set(event, watcher)
 
     return watcher
@@ -107,7 +107,8 @@ export class EventBus {
 
   on (event, cb) {
     assert(typeof event === 'string', 'event must be a string')
-    assert(typeof cb === 'function', 'second argument must be a callback function')
+    assert(typeof cb === 'function',
+      'second argument must be a callback function')
 
     this.setupEventStream(event).then((watcher) => watcher.on(event, cb))
 

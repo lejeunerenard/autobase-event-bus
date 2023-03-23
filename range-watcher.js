@@ -13,8 +13,8 @@ export class RangeWatcher extends EventEmitter {
     this.stream = null
 
     this._lastEventEmittedPerLog = new Map()
-    this._run()
     this._opening = this._ready()
+    this._run()
   }
 
   async _ready () {

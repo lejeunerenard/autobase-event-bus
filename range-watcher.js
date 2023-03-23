@@ -61,6 +61,7 @@ export class RangeWatcher extends EventEmitter {
         const eventDetails = { data: eventObj.data, timestamp: eventObj.timestamp }
         this._lastEventEmittedPerLog.set(inputCoreKey, inputCoreSeq)
         this.emit(eventObj.event, eventDetails)
+        this.emit('*', eventObj)
       }
     }
 

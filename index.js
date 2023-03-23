@@ -65,10 +65,13 @@ export class EventBus {
         extension: false
       })
     })
-    this.autobase.ready().then(() => {
+    this.autobase.ready().then(async () => {
       // TODO Try to get initial view size from remote outputs
       if (this.autobase.localOutput) {
         this._initialViewVersion = this.autobase.localOutput.length
+      } else {
+        await this.autobase.view.update()
+        this._initialViewVersion = this.autobase.view.version
       }
 
       this._bus.emit('started')

@@ -335,6 +335,55 @@ test('EventBus', (t) => {
       await closePromise
       t.end()
     })
+
+    t.test('`*` support', async (t) => {
+      t.plan(4)
+      const store = new Corestore(RAM)
+      const input = store.get({ name: 'input' })
+
+      const bus = new EventBus({
+        eagerUpdate: true,
+        autostart: true,
+        keyEncoding: 'utf-8',
+        valueEncoding: 'json',
+        inputs: [input],
+        localInput: input
+      })
+
+      let starCalled = 0
+      const starEvents = {}
+      const listenerDone = Promise.all([
+        new Promise((resolve, reject) => {
+          bus.on('beep', () => {
+            t.pass('beep callback was fired')
+            resolve()
+          })
+        }),
+        new Promise((resolve, reject) => {
+          bus.on('*', (event) => {
+            t.pass('* callback was fired')
+            starEvents[event.event] = starEvents[event.event] || 0
+            starEvents[event.event]++
+            starCalled++
+            if (starCalled === 2) {
+              resolve()
+            }
+          })
+        })
+      ])
+
+      const tasks = [
+        bus.emit('beep'),
+        bus.emit('boop')
+      ]
+      await Promise.all(tasks)
+
+      await listenerDone
+
+      t.deepEqual(starEvents, { beep: 1, boop: 1 }, 'recevied both event types')
+
+      await bus.close()
+    })
   })
 
   t.test('supports other indexes', async (t) => {

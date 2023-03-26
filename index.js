@@ -87,15 +87,16 @@ export class EventBus {
       const { event, timestamp } = eventObj
       const timestampMS = (new Date(timestamp)).getTime()
 
+      const feedId = node.id
       const lexicographicSeq = lexint.pack(node.seq, 'hex')
       // By event
-      const eventKey = ['event', event, timestampMS, node.id, lexicographicSeq]
+      const eventKey = ['event', event, timestampMS, feedId, lexicographicSeq]
         .join('!')
       // By Time
-      const timeKey = ['time', timestampMS, event, node.id, lexicographicSeq]
+      const timeKey = ['time', timestampMS, event, feedId, lexicographicSeq]
         .join('!')
       // By input key
-      const inputKey = ['key', node.id, lexicographicSeq]
+      const inputKey = ['key', feedId, lexicographicSeq]
         .join('!')
 
       keys[0] = eventKey

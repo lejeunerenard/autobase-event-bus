@@ -103,7 +103,9 @@ export class EventBus {
       keys[1] = timeKey
       keys[2] = inputKey
 
-      await Promise.all(keys.map((key) => b.put(key, eventObj)))
+      for (const key of keys) {
+        await b.put(key, eventObj)
+      }
     }
 
     await b.flush()

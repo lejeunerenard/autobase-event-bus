@@ -66,13 +66,11 @@ export class EventBus {
       })
     })
     this.autobase.ready().then(async () => {
-      // TODO Try to get initial view size from remote outputs
-      if (this.autobase.localOutput) {
-        this._initialViewVersion = this.autobase.localOutput.length
-      } else {
-        await this.autobase.view.update()
-        this._initialViewVersion = this.autobase.view.version
-      }
+      // TODO Adjust this once LinearizeCoreSession has a local-only update
+      await this.autobase.view.update()
+      this._initialViewVersion = this.autobase.localOutput
+        ? this.autobase.localOutput.length
+        : this.autobase.view.version
 
       this._bus.emit('started')
     })

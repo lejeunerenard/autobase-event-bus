@@ -14,7 +14,13 @@ export class RangeWatcher extends EventEmitter {
 
     this._lastEventEmittedPerLog = new Map()
     this._opening = this._ready()
-    this._run()
+
+    this._setLatestDiff = (ancestor) => {
+      this.latestDiff = ancestor
+    }
+
+    this._runBound = this._run.bind(this)
+    this._runBound()
   }
 
   async _ready () {
@@ -24,6 +30,9 @@ export class RangeWatcher extends EventEmitter {
 
   async _run () {
     if (this.opened === false) await this._opening
+
+    this.bee.feed.off('append', this._runBound)
+      .off('truncate', this._setLatestDiff)
 
     // TODO Using snapshot only supported with fix to linearize.js's session on snapshotted cores on linearizedcoresession class
     const db = this.bee.snapshot()
@@ -72,10 +81,8 @@ export class RangeWatcher extends EventEmitter {
     } else {
       // Setup hook to start again
       this.bee.feed
-        .once('append', this._run.bind(this))
-        .once('truncate', (ancestor) => {
-          this.latestDiff = ancestor
-        })
+        .once('append', this._runBound)
+        .once('truncate', this._setLatestDiff)
     }
 
     return this.stream

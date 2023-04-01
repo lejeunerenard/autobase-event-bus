@@ -12,10 +12,16 @@ export class RangeWatcher extends EventEmitter {
     this.latestDiff = latestDiff
     this.stream = null
 
+    this._wasTruncated = false
+
     this._lastEventEmittedPerLog = new Map()
     this._opening = this._ready()
 
     this._setLatestDiff = (ancestor) => {
+      this._wasTruncated = true
+      if (this.stream) {
+        this.stream.destroy()
+      }
       this.latestDiff = ancestor
     }
 
@@ -37,8 +43,15 @@ export class RangeWatcher extends EventEmitter {
     // TODO Using snapshot only supported with fix to linearize.js's session on snapshotted cores on linearizedcoresession class
     const db = this.bee.snapshot()
 
+    this._wasTruncated = false
     this.stream = db.createDiffStream(this.latestDiff, this.range)
+
+    // Setup truncate guard
+    this.bee.feed.once('truncate', this._setLatestDiff)
+
     for await (const node of this.stream) {
+      if (this._wasTruncated) break
+
       let key
       let value
       // Diff stream
@@ -74,15 +87,15 @@ export class RangeWatcher extends EventEmitter {
       }
     }
 
-    this.latestDiff = db.version // Update latest
+    if (!this._wasTruncated) {
+      this.latestDiff = db.version // Update latest
+    }
 
-    if (this.bee.version !== db.version) {
+    if (this.bee.version !== db.version || this._wasTruncated) {
       process.nextTick(this._run.bind(this))
     } else {
       // Setup hook to start again
-      this.bee.feed
-        .once('append', this._runBound)
-        .once('truncate', this._setLatestDiff)
+      this.bee.feed.once('append', this._runBound)
     }
 
     return this.stream

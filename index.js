@@ -20,8 +20,12 @@ export class EventBus {
       this._bus.once('started', resolve)
     })
 
+    // Set default apply if not provided
+    this._apply = 'apply' in opts ? opts.apply : EventBus.eventIndexesApply.bind(this)
+
     this.autobase = new Autobase({
       ...opts,
+      apply: null, // Force apply to be set via .start()
       autostart: false
     })
     if (opts.autostart) {
@@ -59,7 +63,7 @@ export class EventBus {
   start () {
     this.autobase.start({
       unwrap: true,
-      apply: this.eventIndexesApply.bind(this),
+      apply: this._apply,
       view: (core) => new Hyperbee(core.unwrap(), {
         ...this._hyperbeeOpts,
         extension: false
@@ -76,7 +80,7 @@ export class EventBus {
     })
   }
 
-  async eventIndexesApply (bee, batch) {
+  static async eventIndexesApply (bee, batch) {
     const b = bee.batch({ update: false })
     const keys = [null, null, null]
 

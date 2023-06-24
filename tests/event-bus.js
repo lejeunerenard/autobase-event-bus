@@ -567,5 +567,55 @@ test('EventBus', (t) => {
     t.end()
   })
 
+  t.test('apply function can be extended', async (t) => {
+    t.plan(2)
+    const corestore = new Corestore(RAM)
+    const input = corestore.get({ name: 'input' })
+    const out = corestore.get({ name: 'out' })
+
+    const bus = new EventBus({
+      autostart: true,
+      eagerUpdate: true,
+      keyEncoding: 'utf-8',
+      valueEncoding: 'json',
+      inputs: [input],
+      localInput: input,
+      localOutput: out,
+      apply: async (bee, batch) => {
+        await EventBus.eventIndexesApply.apply(bus, [bee, batch])
+        const b = bee.batch({ update: false })
+        const existing = await b.get('total')
+        let total = existing ? existing.value : 0
+
+        for (const node of batch) {
+          const eventObj = bus.valueEncoding.decode(node.value)
+          const { event, data } = eventObj
+          if (event === 'click') {
+            total += Number(data)
+          }
+        }
+
+        await b.put('total', total)
+        await b.flush()
+      }
+    })
+
+    await bus.ready()
+
+    let bizCalled = false
+    bus.on('biz', () => {
+      t.ok(!bizCalled, 'first call of event handler')
+      bizCalled = true
+    })
+
+    await bus.emit('click', 1)
+    await bus.emit('click', 2)
+    await bus.emit('biz', 2)
+    await bus.emit('click', 3)
+
+    const total = await bus.autobase.view.get('total')
+    t.equals(total.value, 6)
+  })
+
   t.end()
 })

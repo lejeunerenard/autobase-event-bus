@@ -5,7 +5,7 @@ import Autobase from 'autobase'
 import Hyperbee from 'hyperbee'
 import assert from 'assert'
 import lexint from 'lexicographic-integer'
-import { RangeWatcher } from './range-watcher.js'
+import { EventWatcher } from './event-watcher.js'
 
 export class EventBus {
   constructor (opts = {}) {
@@ -45,7 +45,7 @@ export class EventBus {
       otherVersion = this._initialViewVersion || 0
     }
 
-    const watcher = new RangeWatcher(this.autobase.view, searchOptions,
+    const watcher = new EventWatcher(this.autobase.view, searchOptions,
       otherVersion)
     this._watchers.set(event, watcher)
 

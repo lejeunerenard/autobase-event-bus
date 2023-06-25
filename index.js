@@ -21,7 +21,7 @@ export class EventBus {
     })
 
     // Set default apply if not provided
-    this._apply = 'apply' in opts ? opts.apply : EventBus.eventIndexesApply.bind(this)
+    this._apply = 'apply' in opts ? opts.apply : this.constructor.eventIndexesApply.bind(this)
 
     this.autobase = new Autobase({
       ...opts,

@@ -31,6 +31,10 @@ export class EventBus {
     this._watchers = new Map()
   }
 
+  get view () {
+    return this.autobase.view
+  }
+
   async setupEventStream (event = '*', otherVersion) {
     if (this._watchers.has(event)) return this._watchers.get(event)
 
@@ -114,6 +118,10 @@ export class EventBus {
     assert(eventObj.timestamp instanceof Date, 'timestamp must be a Date')
 
     return this.autobase.append(eventObj)
+  }
+
+  async append (...args) {
+    return this.autobase.append(...args)
   }
 
   async close () {

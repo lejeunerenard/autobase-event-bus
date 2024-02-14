@@ -1,7 +1,6 @@
 import test from 'tape'
 import Corestore from 'corestore'
 import RAM from 'random-access-memory'
-import Autobase from 'autobase'
 import { eventFlush } from 'autobase-test-helpers'
 
 import { EventBus } from '../index.js'

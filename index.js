@@ -1,5 +1,3 @@
-import { EventEmitter } from 'events'
-import codecs from 'codecs'
 import b4a from 'b4a'
 import Autobase from 'autobase'
 import Hyperbee from 'hyperbee'
@@ -8,29 +6,23 @@ import lexint from 'lexicographic-integer'
 import { EventWatcher } from './event-watcher.js'
 
 export class EventBus {
-  constructor (opts = {}) {
+  constructor (store, bootstraps = null, opts = {}) {
     this._hyperbeeOpts = opts
-
-    this.keyEncoding = opts.keyEncoding ? codecs(opts.keyEncoding) : null
-    // TODO Decide if i want to default valueEncoding to json or something else
-    this.valueEncoding = opts.valueEncoding ? codecs(opts.valueEncoding) : null
-
-    this._bus = new EventEmitter()
-    this._started = new Promise((resolve, reject) => {
-      this._bus.once('started', resolve)
-    })
 
     // Set default apply if not provided
     this._apply = 'apply' in opts ? opts.apply : this.constructor.eventIndexesApply.bind(this)
 
-    this.autobase = new Autobase({
+    this.autobase = new Autobase(store, bootstraps, {
       ...opts,
-      apply: null, // Force apply to be set via .start()
-      autostart: false
+      open: (viewStore) => {
+        const core = viewStore.get('eventbus-index', opts.valueEncoding)
+        return new Hyperbee(core, {
+          ...this._hyperbeeOpts,
+          extension: false
+        })
+      },
+      apply: this._apply
     })
-    if (opts.autostart) {
-      this.start()
-    }
 
     this._watchers = new Map()
   }
@@ -38,7 +30,7 @@ export class EventBus {
   async setupEventStream (event = '*', otherVersion) {
     if (this._watchers.has(event)) return this._watchers.get(event)
 
-    await this._started
+    await this.ready()
 
     const searchOptions = event === '*'
       ? { gte: 'key!', lt: 'key"' }
@@ -46,7 +38,7 @@ export class EventBus {
 
     // Default starting point
     if (!otherVersion) {
-      otherVersion = this._initialViewVersion || 0
+      otherVersion = this.autobase.view.version || 0
     }
 
     const watcher = new EventWatcher(this.autobase.view, searchOptions,
@@ -60,45 +52,25 @@ export class EventBus {
     return this.autobase.ready()
   }
 
-  start () {
-    this.autobase.start({
-      unwrap: true,
-      apply: this._apply,
-      view: (core) => new Hyperbee(core.unwrap(), {
-        ...this._hyperbeeOpts,
-        extension: false
-      })
-    })
-    this.autobase.ready().then(async () => {
-      // TODO Adjust this once LinearizeCoreSession has a local-only update
-      await this.autobase.view.update()
-      this._initialViewVersion = this.autobase.localOutput
-        ? this.autobase.localOutput.length
-        : this.autobase.view.version
-
-      this._bus.emit('started')
-    })
-  }
-
-  static async eventIndexesApply (bee, batch) {
+  static async eventIndexesApply (batch, bee) {
     const b = bee.batch({ update: false })
     const keys = [null, null, null]
 
     for (const node of batch) {
-      const eventObj = this.valueEncoding.decode(node.value)
-      const { event, timestamp } = eventObj
+      const { event, timestamp } = node.value
       const timestampMS = (new Date(timestamp)).getTime()
 
-      const feedId = node.id
-      const lexicographicSeq = lexint.pack(node.seq, 'hex')
+      const feedKey = b4a.toString(node.from.key, 'hex')
+
+      const lexicographicSeq = lexint.pack(node.length, 'hex')
       // By event
-      const eventKey = ['event', event, timestampMS, feedId, lexicographicSeq]
+      const eventKey = ['event', event, timestampMS, feedKey, lexicographicSeq]
         .join('!')
       // By Time
-      const timeKey = ['time', timestampMS, event, feedId, lexicographicSeq]
+      const timeKey = ['time', timestampMS, event, feedKey, lexicographicSeq]
         .join('!')
       // By input key
-      const inputKey = ['key', feedId, lexicographicSeq]
+      const inputKey = ['key', feedKey, lexicographicSeq]
         .join('!')
 
       keys[0] = eventKey
@@ -106,7 +78,7 @@ export class EventBus {
       keys[2] = inputKey
 
       for (const key of keys) {
-        await b.put(key, eventObj)
+        await b.put(key, node.value)
       }
     }
 
@@ -136,22 +108,11 @@ export class EventBus {
     }
     assert(typeof eventObj.event === 'string', 'event must be a string')
     assert(eventObj.timestamp instanceof Date, 'timestamp must be a Date')
-    assert(this.autobase.localInput, 'No localInput hypercore provided')
 
-    const data = enc(this.valueEncoding, eventObj)
-
-    await this.autobase.localInput.ready()
-    return this.autobase.append(data)
+    return this.autobase.append(eventObj)
   }
 
   async close () {
     await this.autobase.close()
   }
-}
-
-function enc (e, v) {
-  if (v === undefined || v === null) return null
-  if (e !== null) return e.encode(v)
-  if (typeof v === 'string') return b4a.from(v)
-  return v
 }

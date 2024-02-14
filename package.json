@@ -12,7 +12,7 @@
   "author": "Sean Zellmer <sean@lejeunerenard.com> (http://lejeunerenard.com/)",
   "license": "MIT",
   "devDependencies": {
-    "corestore": "^6.2.0",
+    "corestore": "^6.15.13",
     "eslint": "^8.27.0",
     "eslint-config-standard": "^17.0.0",
     "eslint-plugin-import": "^2.26.0",
@@ -23,8 +23,9 @@
   },
   "dependencies": {
     "@lejeunerenard/hyperbee-range-watcher-autobase": "github:lejeunerenard/hyperbee-range-watcher-autobase",
-    "autobase": "github:lejeunerenard/autobase#merge-fix-session-and-apply",
-    "hyperbee": "^2.1.2",
+    "autobase": "^6.0.0-rc0",
+    "autobase-test-helpers": "^2.0.4",
+    "hyperbee": "^2.15.0",
     "lexicographic-integer": "^1.1.0"
   }
 }

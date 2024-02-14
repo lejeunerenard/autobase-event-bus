@@ -5,6 +5,10 @@ import assert from 'assert'
 import lexint from 'lexicographic-integer'
 import { EventWatcher } from './event-watcher.js'
 
+export const EVENT_PREFIX = 'event'
+export const TIME_PREFIX = 'time'
+export const KEY_PREFIX = 'key'
+
 export class EventBus {
   constructor (store, bootstraps = null, opts = {}) {
     this._hyperbeeOpts = opts
@@ -33,8 +37,8 @@ export class EventBus {
     await this.ready()
 
     const searchOptions = event === '*'
-      ? { gte: 'key!', lt: 'key"' }
-      : { gte: `event!${event}!`, lt: `event!${event}"` }
+      ? { gte: `${KEY_PREFIX}!`, lt: `${KEY_PREFIX}"` }
+      : { gte: `${EVENT_PREFIX}!${event}!`, lt: `${EVENT_PREFIX}!${event}"` }
 
     // Default starting point
     if (!otherVersion) {
@@ -64,13 +68,13 @@ export class EventBus {
 
       const lexicographicSeq = lexint.pack(node.length, 'hex')
       // By event
-      const eventKey = ['event', event, timestampMS, feedKey, lexicographicSeq]
+      const eventKey = [EVENT_PREFIX, event, timestampMS, feedKey, lexicographicSeq]
         .join('!')
       // By Time
-      const timeKey = ['time', timestampMS, event, feedKey, lexicographicSeq]
+      const timeKey = [TIME_PREFIX, timestampMS, event, feedKey, lexicographicSeq]
         .join('!')
       // By input key
-      const inputKey = ['key', feedKey, lexicographicSeq]
+      const inputKey = [KEY_PREFIX, feedKey, lexicographicSeq]
         .join('!')
 
       keys[0] = eventKey

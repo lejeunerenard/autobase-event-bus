@@ -55,7 +55,9 @@ await bus1.emit('ping')
 
 async function apply (batch, bee, base) {
   // Add writer logic
-  return EventBus.eventIndexesApply(nonWriterNodes, bee, base)
+  // ..
+
+  return EventBus.eventIndexesApply(batch, bee, base)
 }
 ```
 
@@ -66,8 +68,8 @@ async function apply (batch, bee, base) {
 #### `const bus = new EventBus(store, bootstrap, opts = {})`
 
 Create a event bus instance. Takes the same arguments as `autobase` but with the
-`opts` being passed also to the underlying `hyperbee` and `opts.valueEncoding`
-being used for the view's core. Defaults for `opts`:
+`opts` also being passed to the underlying `hyperbee`. `opts.valueEncoding` is
+used for the view's value encoding. Defaults for `opts`:
 
 ```
 {
@@ -79,8 +81,8 @@ being used for the view's core. Defaults for `opts`:
 #### `await bus.emit(event, ...args)`
 
 Emit an `event` with the following `args`. The event will automatically have the
-local time added to the event object appended to the `autobase`'s local core.
-Alternatively the entire event object can be passed in like so:
+local time added to the event object appended to local core. Alternatively the
+entire event object can be passed in like so:
 
 ```js
 await bus.emit({
@@ -90,11 +92,15 @@ await bus.emit({
 })
 ```
 
+The `event` & `timestamp` properties are required.
+
 #### `await bus.on(event, callback)`
 
-Listen for an `event`, calling the `callback` when the `event` is triggered. A
-special wild card event `*` will call the `callback` with every event. For
-non-wild card events, the `callback` is called with an object of the form:
+Listen for an `event`, calling the `callback()` when the `event` is triggered.
+Supports a special wild card event `*` that will call the `callback()` with every
+event.
+
+For non-wild card events, the `callback()` is called with an object of the form:
 
 ```js
 {
@@ -103,8 +109,8 @@ non-wild card events, the `callback` is called with an object of the form:
 }
 ```
 
-Wild card events will receive the entire event object appended to the
-`autobase`'s local core. Default events will look like:
+Wild card events will receive the entire event object appended to the local
+core. Default events will look like:
 
 ```js
 {
@@ -130,5 +136,6 @@ Close the event bus and it's underlying `autobase`.
 
 The apply function for supporting event blocks and adding them to the `bus`'s
 `hyperbee`. The `bus`'s `apply` function will default to this static function.
+
 If a custom `apply` is defined, it is recommended it is composed with
 `eventIndexesApply` to support the event listeners via `.on(event, callback)`.

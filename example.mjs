@@ -4,6 +4,8 @@ import b4a from 'b4a'
 import { EventBus } from './index.js'
 
 const store1 = new Corestore(RAM.reusable())
+const store2 = new Corestore(RAM.reusable())
+
 const bus1 = new EventBus(store1, null, {
   keyEncoding: 'utf-8',
   valueEncoding: 'json',
@@ -11,7 +13,6 @@ const bus1 = new EventBus(store1, null, {
 })
 await bus1.ready()
 
-const store2 = new Corestore(RAM.reusable())
 const bus2 = new EventBus(store2, bus1.autobase.key, {
   keyEncoding: 'utf-8',
   valueEncoding: 'json',

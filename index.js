@@ -46,7 +46,7 @@ export class EventBus {
 
     // Default starting point
     if (!otherVersion) {
-      otherVersion = this.autobase.view.version || 0
+      otherVersion = this.autobase.view.snapshot()
     }
 
     const watcher = new EventWatcher(this.autobase.view, searchOptions,
@@ -60,7 +60,7 @@ export class EventBus {
     return this.autobase.ready()
   }
 
-  static async eventIndexesApply (batch, bee) {
+  static async eventIndexesApply (batch, bee, base) {
     const b = bee.batch({ update: false })
     const keys = [null, null, null]
 

@@ -222,36 +222,36 @@ test('EventBus', (t) => {
       let timesBus1EventWasCalled = 0
       let timesAEventWasCalled = 0
 
-      bus1.on('bus1Event', ({ data }) => {
+      bus1.on('message1:bus1', ({ data }) => {
         timesBus1EventWasCalled++
         if (timesBus1EventWasCalled === 1) {
-          t.pass('bus1Event callback on bus1 was fired')
+          t.pass('message1:bus1 callback on bus1 was fired')
         } else {
-          t.fail('bus1Event callback on bus1 was called more than once')
+          t.fail('message1:bus1 callback on bus1 was called more than once')
         }
       })
-      bus1.on('aardvarkEvent', ({ data }) => {
+      bus1.on('amessage2:bus1', ({ data }) => {
         timesAEventWasCalled++
         if (timesAEventWasCalled === 1) {
-          t.pass('aardvarkEvent callback on bus1 was fired')
+          t.pass('amessage2:bus1 callback on bus1 was fired')
         } else {
-          t.fail('aardvarkEvent callback on bus1 was called more than once')
+          t.fail('amessage2:bus1 callback on bus1 was called more than once')
         }
       })
-      bus2.on('bus2Event', () => {
-        t.pass('bus2Event callback on bus2 was fired')
+      bus2.on('message1:bus2', () => {
+        t.pass('message1:bus2 callback on bus2 was fired')
       })
 
       await eventFlush()
 
       const tasks = [
-        bus1.emit('filler', 'frombus1'),
-        bus1.emit('bus1Event', 'a'), // Must be after filler
-        bus1.emit('aardvarkEvent'), // Must be after bus1 so it comes before when hyperbee is queried via event name
-        bus2.emit('bus2Event'),
-        bus2.emit('filler', 'frombus2'),
-        bus2.emit('filler', 'frombus2'),
-        bus2.emit('filler', 'frombus2')
+        bus1.emit('filler:bus1', 'frombus1'),
+        bus1.emit('message1:bus1', 'a'), // Must be after filler
+        bus1.emit('amessage2:bus1'), // Must be after bus1 so it comes before when hyperbee is queried via event name
+        bus2.emit('message1:bus2'),
+        bus2.emit('filler:bus2', 'frombus2'),
+        bus2.emit('filler:bus2', 'frombus2'),
+        bus2.emit('filler:bus2', 'frombus2')
       ]
       await Promise.all(tasks)
     })

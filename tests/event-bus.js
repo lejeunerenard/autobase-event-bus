@@ -58,10 +58,7 @@ test('EventBus', (t) => {
       const corestore = new Corestore(RAM)
 
       // Normal use
-      const bus = new EventBus(corestore, null, {
-        valueEncoding: 'json',
-        localInput: corestore.get({ name: 'emitLocalInput' })
-      })
+      const bus = new EventBus(corestore, null, { valueEncoding: 'json' })
       try {
         await bus.emit('beep', 'foo', 2, 'baz')
         t.pass('doesnt throw w/ normal use')
@@ -76,10 +73,7 @@ test('EventBus', (t) => {
     t.test('object arguments', async (t) => {
       const corestore = new Corestore(RAM)
 
-      const bus = new EventBus(corestore, null, {
-        valueEncoding: 'json',
-        localInput: corestore.get({ name: 'emitLocalInput' })
-      })
+      const bus = new EventBus(corestore, null, { valueEncoding: 'json' })
 
       await asyncThrows(async () =>
         await bus.emit({}),

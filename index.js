@@ -120,6 +120,10 @@ export class EventBus {
     return this.autobase.append(eventObj)
   }
 
+  async update (...args) {
+    return this.autobase.update(...args)
+  }
+
   async append (...args) {
     return this.autobase.append(...args)
   }

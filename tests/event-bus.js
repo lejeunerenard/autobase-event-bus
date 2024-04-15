@@ -1,7 +1,6 @@
 import test from 'tape'
 import Corestore from 'corestore'
 import RAM from 'random-access-memory'
-import { eventFlush } from 'autobase-test-helpers'
 
 import { EventBus } from '../index.js'
 import { applyWriterManagement } from './helper.mjs'
@@ -130,12 +129,9 @@ test('EventBus', (t) => {
         bus.emit('boop')
       ]
       await Promise.all(tasks)
-      console.log('tasks done')
 
-      await bus.autobase.view.update()
-      console.log('update done')
+      await bus.update()
       await listenerDone
-      console.log('listener done')
 
       await bus.close()
     })
@@ -236,7 +232,7 @@ test('EventBus', (t) => {
         t.pass('message1:bus2 callback on bus2 was fired')
       })
 
-      await eventFlush()
+      await bus2.update()
 
       const tasks = [
         bus1.emit('filler:bus1', 'frombus1'),
@@ -274,29 +270,16 @@ test('EventBus', (t) => {
       for (let i = 0; i < 1_000; i++) {
         await bus.emit('beep' + i)
       }
-      console.log('done emitting beep')
 
-      bus.autobase.view.update()
+      bus.update()
       await bus.emit('bar')
-      console.log('after emit bar')
       try {
-        console.log('before view update')
-        await bus.autobase.view.update()
-        console.log('after view update')
+        await bus.update()
       } catch (e) {
         console.error('catch e', e)
       }
 
-      const closePromise = new Promise((resolve, reject) => {
-        setTimeout(async () => {
-          await bus.close()
-          resolve()
-        }, 200)
-      })
-
-      await closePromise
-      console.log('before end')
-      await eventFlush()
+      await bus.close()
       t.end()
     })
 
@@ -336,15 +319,32 @@ test('EventBus', (t) => {
         bus.emit('boop')
       ]
       await Promise.all(tasks)
-      console.log('tasks done')
 
       await listenerDone
-      console.log('listeners done')
 
       t.deepEqual(starEvents, { beep: 1, boop: 1 }, 'recevied both event types')
 
       await bus.close()
     })
+  })
+
+  t.test('update()', async (t) => {
+    const corestore = new Corestore(RAM.reusable())
+
+    // Normal use
+    const bus = new EventBus(corestore, null, { valueEncoding: 'json' })
+    let beepsReceived = 0
+    bus.on('beep', () => {
+      beepsReceived++
+    })
+
+    for (let i = 0; i < 10; i++) {
+      bus.emit('beep', 'foo' + i)
+    }
+
+    t.equals(beepsReceived, 0, 'events havent triggered')
+    await bus.update()
+    t.equals(beepsReceived, 10, 'update triggers events')
   })
 
   t.test('replication', async (t) => {

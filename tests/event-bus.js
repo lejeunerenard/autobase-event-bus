@@ -23,7 +23,7 @@ async function asyncThrows (fn, err, t, message = 'throws') {
 
 test('EventBus', (t) => {
   t.test('construction', (t) => {
-    const corestore = new Corestore(RAM)
+    const corestore = new Corestore(RAM.reusable())
     const bus = new EventBus(corestore)
 
     // Public properties
@@ -35,7 +35,7 @@ test('EventBus', (t) => {
   })
 
   t.test('close', async (t) => {
-    const corestore = new Corestore(RAM)
+    const corestore = new Corestore(RAM.reusable())
     const bus = new EventBus(corestore)
 
     // Public properties
@@ -54,7 +54,7 @@ test('EventBus', (t) => {
 
   t.test('emit', async (t) => {
     t.test('basic usage', async (t) => {
-      const corestore = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
 
       // Normal use
       const bus = new EventBus(corestore, null, { valueEncoding: 'json' })
@@ -70,7 +70,7 @@ test('EventBus', (t) => {
     })
 
     t.test('object arguments', async (t) => {
-      const corestore = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
 
       const bus = new EventBus(corestore, null, { valueEncoding: 'json' })
 
@@ -103,7 +103,7 @@ test('EventBus', (t) => {
     t.test('w/ eagerUpdate false', async (t) => {
       t.plan(2)
 
-      const corestoreError = new Corestore(RAM)
+      const corestoreError = new Corestore(RAM.reusable())
 
       const errorEmitBus = new EventBus(corestoreError, [])
       t.throws(() => errorEmitBus.on(), /event must be a string/,
@@ -111,7 +111,7 @@ test('EventBus', (t) => {
       await errorEmitBus.close()
 
       // Normal use
-      const corestore = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
       const bus = new EventBus(corestore, null, {
         keyEncoding: 'utf-8',
         valueEncoding: 'json'
@@ -139,7 +139,7 @@ test('EventBus', (t) => {
     t.test('w/ eagerUpdate true', async (t) => {
       t.plan(2)
 
-      const corestore = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
 
       // Normal use
       const bus = new EventBus(corestore, null, {
@@ -179,8 +179,8 @@ test('EventBus', (t) => {
     t.test('doesnt refire when linearized core resequences', async (t) => {
       t.plan(3)
 
-      const corestore = new Corestore(RAM)
-      const corestore2 = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
+      const corestore2 = new Corestore(RAM.reusable())
 
       const [apply, addWriter] = applyWriterManagement(false)
 
@@ -248,7 +248,7 @@ test('EventBus', (t) => {
 
     t.test('fires event when emit is fired during indexing', async (t) => {
       t.plan(1)
-      const corestore = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
 
       // Bus 1
       const bus = new EventBus(corestore, null, {
@@ -285,7 +285,7 @@ test('EventBus', (t) => {
 
     t.test('`*` support', async (t) => {
       t.plan(4)
-      const store = new Corestore(RAM)
+      const store = new Corestore(RAM.reusable())
 
       const bus = new EventBus(store, null, {
         keyEncoding: 'utf-8',
@@ -350,8 +350,8 @@ test('EventBus', (t) => {
   t.test('replication', async (t) => {
     t.plan(3)
 
-    const corestore = new Corestore(RAM)
-    const corestore2 = new Corestore(RAM)
+    const corestore = new Corestore(RAM.reusable())
+    const corestore2 = new Corestore(RAM.reusable())
 
     const [apply, addWriter] = applyWriterManagement(false)
 
@@ -424,7 +424,7 @@ test('EventBus', (t) => {
 
   t.test('apply function can be extended', async (t) => {
     t.plan(2)
-    const corestore = new Corestore(RAM)
+    const corestore = new Corestore(RAM.reusable())
 
     const bus = new EventBus(corestore, null, {
       keyEncoding: 'utf-8',

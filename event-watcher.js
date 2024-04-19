@@ -6,7 +6,7 @@ export class EventWatcher extends EventEmitter {
     super()
 
     this.watcher = new RangeWatcher(bee, range, latestDiff, async (node) => {
-      const { type, key, value } = node
+      const { type, value } = node
       // Ignore Events somehow removed
       if (type === 'del') return
 

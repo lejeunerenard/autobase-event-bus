@@ -11,21 +11,19 @@ export const KEY_PREFIX = 'key'
 
 export class EventBus {
   constructor (store, bootstraps = null, opts = {}) {
-    this._hyperbeeOpts = opts
-
     // Set default apply if not provided
-    this._apply = 'apply' in opts ? opts.apply : this.constructor.eventIndexesApply.bind(this)
+    const apply = 'apply' in opts ? opts.apply : this.constructor.eventIndexesApply.bind(this)
 
     this.autobase = new Autobase(store, bootstraps, {
       ...opts,
       open: (viewStore) => {
-        const core = viewStore.get('eventbus-index', opts.valueEncoding)
+        const core = viewStore.get('eventbus-index')
         return new Hyperbee(core, {
-          ...this._hyperbeeOpts,
+          ...opts,
           extension: false
         })
       },
-      apply: this._apply
+      apply
     })
 
     this._watchers = new Map()

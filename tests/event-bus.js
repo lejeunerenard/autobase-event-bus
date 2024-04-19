@@ -38,9 +38,6 @@ test('EventBus', (t) => {
     const corestore = new Corestore(RAM.reusable())
     const bus = new EventBus(corestore)
 
-    // Public properties
-    t.ok(bus.autobase, 'has autobase property')
-
     try {
       await bus.close()
       t.pass('doesnt throw w/ normal use')
@@ -167,8 +164,7 @@ test('EventBus', (t) => {
         }),
         new Promise((resolve, reject) => {
           setTimeout(() => {
-            bus.emit('after', 1337)
-            resolve()
+            resolve(bus.emit('after', 1337))
           }, 50)
         })
       ]

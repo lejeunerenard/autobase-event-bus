@@ -33,6 +33,18 @@ export class EventBus {
     return this.autobase.view
   }
 
+  get writable () {
+    return this.autobase.writable
+  }
+
+  get local () {
+    return this.autobase.local
+  }
+
+  get key () {
+    return this.autobase.key
+  }
+
   async setupEventStream (event = '*', otherVersion) {
     if (this._watchers.has(event)) return this._watchers.get(event)
 

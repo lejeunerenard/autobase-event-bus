@@ -190,7 +190,7 @@ test('EventBus', (t) => {
       await bus1.ready()
 
       // Bus 2
-      const bus2 = new EventBus(corestore2, [bus1.autobase.local.key], {
+      const bus2 = new EventBus(corestore2, [bus1.local.key], {
         keyEncoding: 'utf-8',
         valueEncoding: 'json',
         apply
@@ -203,7 +203,7 @@ test('EventBus', (t) => {
       stream1.pipe(stream2).pipe(stream1)
 
       // Add other bus
-      await addWriter(bus1.autobase, bus2.autobase.local.key)
+      await addWriter(bus1, bus2.local.key)
 
       let timesBus1EventWasCalled = 0
       let timesAEventWasCalled = 0
@@ -259,7 +259,7 @@ test('EventBus', (t) => {
       // // TODO Figure out how to not trigger apply/update from setupEventStream
       // // running. The solution might be a more intelligent way to kick it off
       // // than the autobase append event.
-      // bus.autobase.view.feed.on('append', () => {
+      // bus.view.feed.on('append', () => {
       //   console.log('bus hyperbee append fired')
       // })
 
@@ -358,7 +358,7 @@ test('EventBus', (t) => {
     })
     await peerA.ready()
 
-    const peerB = new EventBus(corestore, [peerA.autobase.local.key], {
+    const peerB = new EventBus(corestore, [peerA.local.key], {
       keyEncoding: 'utf-8',
       valueEncoding: 'json',
       apply
@@ -370,7 +370,7 @@ test('EventBus', (t) => {
     stream1.pipe(stream2).pipe(stream1)
 
     // Add other bus
-    await addWriter(peerA.autobase, peerB.autobase.local.key)
+    await addWriter(peerA, peerB.local.key)
 
     const expectedCalls = 83
     let pingCalls = 0
@@ -458,7 +458,7 @@ test('EventBus', (t) => {
     await bus.emit('biz', 2)
     await bus.emit('click', 3)
 
-    const total = await bus.autobase.view.get('total')
+    const total = await bus.view.get('total')
     t.equals(total.value, 6)
   })
 

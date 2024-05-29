@@ -11,6 +11,20 @@
   "keywords": [],
   "author": "Sean Zellmer <sean@lejeunerenard.com> (http://lejeunerenard.com/)",
   "license": "MIT",
+  "imports": {
+    "assert": {
+      "bare": "bare-assert",
+      "default": "assert"
+    },
+    "events": {
+      "bare": "bare-events",
+      "default": "events"
+    },
+    "fs": {
+      "bare": "bare-fs",
+      "default": "fs"
+    }
+  },
   "devDependencies": {
     "corestore": "^6.15.13",
     "eslint": "^8.27.0",
@@ -22,10 +36,15 @@
     "tape": "^5.6.1"
   },
   "dependencies": {
-    "@lejeunerenard/hyperbee-range-watcher-autobase": "github:lejeunerenard/hyperbee-range-watcher-autobase#1.1.0",
-    "autobase": "^6.0.0-rc0",
+    "@lejeunerenard/hyperbee-range-watcher-autobase": "github:lejeunerenard/hyperbee-range-watcher-autobase#hyperbee-diff-stream",
+    "autobase": "^6.0.0-rc9",
     "autobase-test-helpers": "^2.0.4",
     "hyperbee": "^2.15.0",
     "lexicographic-integer": "^1.1.0"
+  },
+  "optionalDependencies": {
+    "bare-assert": "^1.0.1",
+    "bare-events": "^2.2.2",
+    "bare-fs": "^2.3.0"
   }
 }

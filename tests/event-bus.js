@@ -1,7 +1,6 @@
 import test from 'tape'
 import Corestore from 'corestore'
 import RAM from 'random-access-memory'
-import { eventFlush } from 'autobase-test-helpers'
 
 import { EventBus } from '../index.js'
 import { applyWriterManagement } from './helper.mjs'
@@ -24,7 +23,7 @@ async function asyncThrows (fn, err, t, message = 'throws') {
 
 test('EventBus', (t) => {
   t.test('construction', (t) => {
-    const corestore = new Corestore(RAM)
+    const corestore = new Corestore(RAM.reusable())
     const bus = new EventBus(corestore)
 
     // Public properties
@@ -36,11 +35,8 @@ test('EventBus', (t) => {
   })
 
   t.test('close', async (t) => {
-    const corestore = new Corestore(RAM)
+    const corestore = new Corestore(RAM.reusable())
     const bus = new EventBus(corestore)
-
-    // Public properties
-    t.ok(bus.autobase, 'has autobase property')
 
     try {
       await bus.close()
@@ -55,13 +51,10 @@ test('EventBus', (t) => {
 
   t.test('emit', async (t) => {
     t.test('basic usage', async (t) => {
-      const corestore = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
 
       // Normal use
-      const bus = new EventBus(corestore, null, {
-        valueEncoding: 'json',
-        localInput: corestore.get({ name: 'emitLocalInput' })
-      })
+      const bus = new EventBus(corestore, null, { valueEncoding: 'json' })
       try {
         await bus.emit('beep', 'foo', 2, 'baz')
         t.pass('doesnt throw w/ normal use')
@@ -74,12 +67,9 @@ test('EventBus', (t) => {
     })
 
     t.test('object arguments', async (t) => {
-      const corestore = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
 
-      const bus = new EventBus(corestore, null, {
-        valueEncoding: 'json',
-        localInput: corestore.get({ name: 'emitLocalInput' })
-      })
+      const bus = new EventBus(corestore, null, { valueEncoding: 'json' })
 
       await asyncThrows(async () =>
         await bus.emit({}),
@@ -110,7 +100,7 @@ test('EventBus', (t) => {
     t.test('w/ eagerUpdate false', async (t) => {
       t.plan(2)
 
-      const corestoreError = new Corestore(RAM)
+      const corestoreError = new Corestore(RAM.reusable())
 
       const errorEmitBus = new EventBus(corestoreError, [])
       t.throws(() => errorEmitBus.on(), /event must be a string/,
@@ -118,7 +108,7 @@ test('EventBus', (t) => {
       await errorEmitBus.close()
 
       // Normal use
-      const corestore = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
       const bus = new EventBus(corestore, null, {
         keyEncoding: 'utf-8',
         valueEncoding: 'json'
@@ -136,12 +126,9 @@ test('EventBus', (t) => {
         bus.emit('boop')
       ]
       await Promise.all(tasks)
-      console.log('tasks done')
 
-      await bus.autobase.view.update()
-      console.log('update done')
+      await bus.update()
       await listenerDone
-      console.log('listener done')
 
       await bus.close()
     })
@@ -149,7 +136,7 @@ test('EventBus', (t) => {
     t.test('w/ eagerUpdate true', async (t) => {
       t.plan(2)
 
-      const corestore = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
 
       // Normal use
       const bus = new EventBus(corestore, null, {
@@ -177,8 +164,7 @@ test('EventBus', (t) => {
         }),
         new Promise((resolve, reject) => {
           setTimeout(() => {
-            bus.emit('after', 1337)
-            resolve()
+            resolve(bus.emit('after', 1337))
           }, 50)
         })
       ]
@@ -189,8 +175,8 @@ test('EventBus', (t) => {
     t.test('doesnt refire when linearized core resequences', async (t) => {
       t.plan(3)
 
-      const corestore = new Corestore(RAM)
-      const corestore2 = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
+      const corestore2 = new Corestore(RAM.reusable())
 
       const [apply, addWriter] = applyWriterManagement(false)
 
@@ -204,7 +190,7 @@ test('EventBus', (t) => {
       await bus1.ready()
 
       // Bus 2
-      const bus2 = new EventBus(corestore2, [bus1.autobase.local.key], {
+      const bus2 = new EventBus(corestore2, [bus1.local.key], {
         keyEncoding: 'utf-8',
         valueEncoding: 'json',
         apply
@@ -217,48 +203,48 @@ test('EventBus', (t) => {
       stream1.pipe(stream2).pipe(stream1)
 
       // Add other bus
-      await addWriter(bus1.autobase, bus2.autobase.local.key)
+      await addWriter(bus1, bus2.local.key)
 
       let timesBus1EventWasCalled = 0
       let timesAEventWasCalled = 0
 
-      bus1.on('bus1Event', ({ data }) => {
+      bus1.on('message1:bus1', ({ data }) => {
         timesBus1EventWasCalled++
         if (timesBus1EventWasCalled === 1) {
-          t.pass('bus1Event callback on bus1 was fired')
+          t.pass('message1:bus1 callback on bus1 was fired')
         } else {
-          t.fail('bus1Event callback on bus1 was called more than once')
+          t.fail('message1:bus1 callback on bus1 was called more than once')
         }
       })
-      bus1.on('aardvarkEvent', ({ data }) => {
+      bus1.on('amessage2:bus1', ({ data }) => {
         timesAEventWasCalled++
         if (timesAEventWasCalled === 1) {
-          t.pass('aardvarkEvent callback on bus1 was fired')
+          t.pass('amessage2:bus1 callback on bus1 was fired')
         } else {
-          t.fail('aardvarkEvent callback on bus1 was called more than once')
+          t.fail('amessage2:bus1 callback on bus1 was called more than once')
         }
       })
-      bus2.on('bus2Event', () => {
-        t.pass('bus2Event callback on bus2 was fired')
+      bus2.on('message1:bus2', () => {
+        t.pass('message1:bus2 callback on bus2 was fired')
       })
 
-      await eventFlush()
+      await bus2.update()
 
       const tasks = [
-        bus1.emit('filler', 'frombus1'),
-        bus1.emit('bus1Event', 'a'), // Must be after filler
-        bus1.emit('aardvarkEvent'), // Must be after bus1 so it comes before when hyperbee is queried via event name
-        bus2.emit('bus2Event'),
-        bus2.emit('filler', 'frombus2'),
-        bus2.emit('filler', 'frombus2'),
-        bus2.emit('filler', 'frombus2')
+        bus1.emit('filler:bus1', 'frombus1'),
+        bus1.emit('message1:bus1', 'a'), // Must be after filler
+        bus1.emit('amessage2:bus1'), // Must be after bus1 so it comes before when hyperbee is queried via event name
+        bus2.emit('message1:bus2'),
+        bus2.emit('filler:bus2', 'frombus2'),
+        bus2.emit('filler:bus2', 'frombus2'),
+        bus2.emit('filler:bus2', 'frombus2')
       ]
       await Promise.all(tasks)
     })
 
     t.test('fires event when emit is fired during indexing', async (t) => {
       t.plan(1)
-      const corestore = new Corestore(RAM)
+      const corestore = new Corestore(RAM.reusable())
 
       // Bus 1
       const bus = new EventBus(corestore, null, {
@@ -273,42 +259,29 @@ test('EventBus', (t) => {
       // // TODO Figure out how to not trigger apply/update from setupEventStream
       // // running. The solution might be a more intelligent way to kick it off
       // // than the autobase append event.
-      // bus.autobase.view.feed.on('append', () => {
+      // bus.view.feed.on('append', () => {
       //   console.log('bus hyperbee append fired')
       // })
 
       for (let i = 0; i < 1_000; i++) {
         await bus.emit('beep' + i)
       }
-      console.log('done emitting beep')
 
-      bus.autobase.view.update()
+      bus.update()
       await bus.emit('bar')
-      console.log('after emit bar')
       try {
-        console.log('before view update')
-        await bus.autobase.view.update()
-        console.log('after view update')
+        await bus.update()
       } catch (e) {
         console.error('catch e', e)
       }
 
-      const closePromise = new Promise((resolve, reject) => {
-        setTimeout(async () => {
-          await bus.close()
-          resolve()
-        }, 200)
-      })
-
-      await closePromise
-      console.log('before end')
-      await eventFlush()
+      await bus.close()
       t.end()
     })
 
     t.test('`*` support', async (t) => {
       t.plan(4)
-      const store = new Corestore(RAM)
+      const store = new Corestore(RAM.reusable())
 
       const bus = new EventBus(store, null, {
         keyEncoding: 'utf-8',
@@ -342,10 +315,8 @@ test('EventBus', (t) => {
         bus.emit('boop')
       ]
       await Promise.all(tasks)
-      console.log('tasks done')
 
       await listenerDone
-      console.log('listeners done')
 
       t.deepEqual(starEvents, { beep: 1, boop: 1 }, 'recevied both event types')
 
@@ -353,11 +324,30 @@ test('EventBus', (t) => {
     })
   })
 
+  t.test('update()', async (t) => {
+    const corestore = new Corestore(RAM.reusable())
+
+    // Normal use
+    const bus = new EventBus(corestore, null, { valueEncoding: 'json' })
+    let beepsReceived = 0
+    bus.on('beep', () => {
+      beepsReceived++
+    })
+
+    for (let i = 0; i < 10; i++) {
+      bus.emit('beep', 'foo' + i)
+    }
+
+    t.equals(beepsReceived, 0, 'events havent triggered')
+    await bus.update()
+    t.equals(beepsReceived, 10, 'update triggers events')
+  })
+
   t.test('replication', async (t) => {
     t.plan(3)
 
-    const corestore = new Corestore(RAM)
-    const corestore2 = new Corestore(RAM)
+    const corestore = new Corestore(RAM.reusable())
+    const corestore2 = new Corestore(RAM.reusable())
 
     const [apply, addWriter] = applyWriterManagement(false)
 
@@ -368,7 +358,7 @@ test('EventBus', (t) => {
     })
     await peerA.ready()
 
-    const peerB = new EventBus(corestore, [peerA.autobase.local.key], {
+    const peerB = new EventBus(corestore, [peerA.local.key], {
       keyEncoding: 'utf-8',
       valueEncoding: 'json',
       apply
@@ -380,7 +370,7 @@ test('EventBus', (t) => {
     stream1.pipe(stream2).pipe(stream1)
 
     // Add other bus
-    await addWriter(peerA.autobase, peerB.autobase.local.key)
+    await addWriter(peerA, peerB.local.key)
 
     const expectedCalls = 83
     let pingCalls = 0
@@ -430,7 +420,7 @@ test('EventBus', (t) => {
 
   t.test('apply function can be extended', async (t) => {
     t.plan(2)
-    const corestore = new Corestore(RAM)
+    const corestore = new Corestore(RAM.reusable())
 
     const bus = new EventBus(corestore, null, {
       keyEncoding: 'utf-8',
@@ -468,7 +458,7 @@ test('EventBus', (t) => {
     await bus.emit('biz', 2)
     await bus.emit('click', 3)
 
-    const total = await bus.autobase.view.get('total')
+    const total = await bus.view.get('total')
     t.equals(total.value, 6)
   })
 
